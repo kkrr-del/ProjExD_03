@@ -1,3 +1,4 @@
+import math
 import random
 import sys
 import time
@@ -10,7 +11,7 @@ HEIGHT = 900  # ゲームウィンドウの高さ
 NUM_OF_BOMBS = 5  # 爆弾の数
 
 
-def check_bound(area: pg.Rect, obj: pg.Rect) -> tuple[bool, bool]:
+def check_bound(obj: pg.Rect) -> tuple[bool, bool]:
     """
     オブジェクトが画面内か画面外かを判定し，真理値タプルを返す
     引数1 area：画面SurfaceのRect
@@ -18,9 +19,9 @@ def check_bound(area: pg.Rect, obj: pg.Rect) -> tuple[bool, bool]:
     戻り値：横方向，縦方向のはみ出し判定結果（画面内：True／画面外：False）
     """
     yoko, tate = True, True
-    if obj.left < area.left or area.right < obj.right:  # 横方向のはみ出し判定
+    if obj.left < 0 or WIDTH < obj.right:  # 横方向のはみ出し判定
         yoko = False
-    if obj.top < area.top or area.bottom < obj.bottom:  # 縦方向のはみ出し判定
+    if obj.top < 0 or HEIGHT < obj.bottom:  # 縦方向のはみ出し判定
         tate = False
     return yoko, tate
 
@@ -54,7 +55,8 @@ class Bird:
             (0, +1): pg.transform.rotozoom(img1, -90, 1.0),  # 下
             (+1, +1): pg.transform.rotozoom(img1, -45, 1.0),  # 右下
         }
-        self._img = self._imgs[(+1, 0)]  # デフォルトで右
+        self.dire = (+1, 0)
+        self._img = self._imgs[self.dire]
         self._rct = self._img.get_rect()
         self._rct.center = xy
 
@@ -79,13 +81,17 @@ class Bird:
                 self._rct.move_ip(mv)
                 sum_mv[0] += mv[0]  # 横方向合計
                 sum_mv[1] += mv[1]  # 縦方向合計
-        if check_bound(screen.get_rect(), self._rct) != (True, True):
+        if check_bound(self._rct) != (True, True):
             for k, mv in __class__._delta.items():
                 if key_lst[k]:
                     self._rct.move_ip(-mv[0], -mv[1])
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
-            self._img = self._imgs[tuple(sum_mv)]  # 押されてキーの合計値
+            self.dire = tuple(sum_mv)
+            self._img = self._imgs[self.dire]
         screen.blit(self._img, self._rct)
+
+    def get_direction(self) -> tuple[int, int]:
+        return self.dire
 
 
 class Bomb:
@@ -112,7 +118,7 @@ class Bomb:
         爆弾を速度ベクトルself._vx, self._vyに基づき移動させる
         引数 screen：画面Surface
         """
-        yoko, tate = check_bound(screen.get_rect(), self._rct)
+        yoko, tate = check_bound(self._rct)
         if not yoko:
             self._vx *= -1
         if not tate:
@@ -126,15 +132,16 @@ class Beam:
     ビームに関するクラス
     """
     def __init__(self, bird: Bird):
-        """
-        割合
-        """
-        self._img = pg.transform.rotozoom(pg.image.load(f"ex03/fig/beam.png"), 0, 2.0)  # 画像surface
-        self._rct = self._img.get_rect()  # 画像surfaceに対応したrect
-        self._rct.left = bird._rct.right  # こうかとんの右側にビームの左側を合わせる
-        self._rct.centery = bird._rct.centery
-        self._vx, self._vy = +1, 0
-
+        self._img = pg.transform.flip(pg.transform.rotozoom(pg.image.load(f"ex03/fig/beam.png"), 0, 2.0), True, False) 
+        self._rct = self._img.get_rect()
+        self._rct.center = bird._rct.center
+        self._vx, self._vy = bird.get_direction()         
+        angle = math.degrees(math.atan2(-self._vy,self._vx))      
+        self._img = pg.transform.rotozoom(pg.image.load(f"ex03/fig/beam.png"), angle, 2.0)
+        self._rct = self._img.get_rect()
+        self._rct.centery = bird._rct.centery + bird._rct.height * self._vy
+        self._rct.centerx = bird._rct.centerx + bird._rct.width * self._vx
+        
     def update(self, screen: pg.Surface):
         """
         ビームを速度self._vyに基づき移動させる
@@ -142,23 +149,6 @@ class Beam:
         """
         self._rct.move_ip(self._vx, self._vy)
         screen.blit(self._img, self._rct)
-
-class Explosion:
-    """
-    エフェクトに関するクラス
-    """
-    def __init__(self, bomb: Bomb, life: int):
-        img = pg.image.load("ex03/fig/explosion.gif")
-        self._imgs = [img, pg.transform.flip(img, 1, 1)]
-        self._life = life 
-        self._img = self._imgs[0]
-        self._rct = self._img.get_rect()
-        self._rct.center = bomb._rct.center
-
-    def update(self, screen: pg.surface):
-        if self._life != 0:
-            screen.blit(self._imgs[self._life // 10 % 2], self._rct.center)
-            self._life -=1
 
 
 def main():
@@ -182,9 +172,6 @@ def main():
 
         tmr += 1
         screen.blit(bg_img, [0, 0])
-
-        for explosion in explosions:
-            explosion.update(screen)
         
         for bomb in bombs:
             bomb.update(screen)
@@ -203,7 +190,6 @@ def main():
             for i, bomb in enumerate(bombs):
                 if beam._rct.colliderect(bomb._rct):
                     beam = None
-                    explosions.append(Explosion(bombs[i], 50))
                     del bombs[i]
                     bird.change_img(6, screen)
                     break
