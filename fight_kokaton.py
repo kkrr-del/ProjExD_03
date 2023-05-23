@@ -1,4 +1,4 @@
-import math
+import math  # 追加機能２
 import random
 import sys
 import time
@@ -55,8 +55,8 @@ class Bird:
             (0, +1): pg.transform.rotozoom(img1, -90, 1.0),  # 下
             (+1, +1): pg.transform.rotozoom(img1, -45, 1.0),  # 右下
         }
-        self.dire = (+1, 0)
-        self._img = self._imgs[self.dire]
+        self.dire = (+1, 0)  # 追加機能２
+        self._img = self._imgs[self.dire]  # 追加機能２
         self._rct = self._img.get_rect()
         self._rct.center = xy
 
@@ -87,10 +87,10 @@ class Bird:
                     self._rct.move_ip(-mv[0], -mv[1])
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
-            self._img = self._imgs[self.dire]
+            self._img = self._imgs[self.dire]  # 追加機能２
         screen.blit(self._img, self._rct)
 
-    def get_direction(self) -> tuple[int, int]:
+    def get_direction(self) -> tuple[int, int]:  # 追加機能２
         return self.dire
 
 
@@ -135,6 +135,7 @@ class Beam:
         self._img = pg.transform.flip(pg.transform.rotozoom(pg.image.load(f"ex03/fig/beam.png"), 0, 2.0), True, False) 
         self._rct = self._img.get_rect()
         self._rct.center = bird._rct.center
+        # 追加機能２
         self._vx, self._vy = bird.get_direction()         
         angle = math.degrees(math.atan2(-self._vy,self._vx))      
         self._img = pg.transform.rotozoom(pg.image.load(f"ex03/fig/beam.png"), angle, 2.0)
@@ -152,7 +153,7 @@ class Beam:
 
 
 
-class Explosion:
+class Explosion:  # 追加機能１
     def __init__(self, bomb: Bomb, life: int):
         img = pg.image.load("ex03/fig/explosion.gif")
         self._imgs = [img, pg.transform.flip(img, 1, 1)]
@@ -167,7 +168,7 @@ class Explosion:
             self._life -=1
 
 
-class Score:
+class Score:  # 追加機能３
     """
     打ち落とした爆弾の数をスコアとして表示するクラス
     爆弾:1点
@@ -193,12 +194,12 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     clock = pg.time.Clock()
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
-    score = Score()
+    score = Score()  # 追加機能３
 
     bird = Bird(3, (900, 400))
     bombs = [Bomb() for _ in range(NUM_OF_BOMBS)]
-    explosions = []
-    beam = None
+    explosions = []  # 追加機能１
+    beams = []  # 追加機能４
 
     tmr = 0
     while True:
@@ -206,7 +207,7 @@ def main():
             if event.type == pg.QUIT:
                 return
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
-                beam = Beam(bird)
+                beams.append(Beam(bird))  # 追加機能４
 
         tmr += 1
         screen.blit(bg_img, [0, 0])
@@ -223,21 +224,23 @@ def main():
         key_lst = pg.key.get_pressed()
         bird.update(key_lst, screen) 
 
-        for explosion in explosions:
+        for explosion in explosions:  # 追加機能１
             explosion.update(screen)  
      
-        if beam is not None:  # ビームが存在しているとき
+        for i, beam in enumerate(beams):  # 追加機能４
             beam.update(screen)
-            for i, bomb in enumerate(bombs):
+            if beam._rct[0] <= 0 or beam._rct[0] >= 1600 or beam._rct[1] <= 0 or beam._rct[1] >= 900:
+                del beams[i]
+            for j, bomb in enumerate(bombs):
                 if beam._rct.colliderect(bomb._rct):
                     beam = None
-                    explosions.append(Explosion(bombs[i], 50))
-                    del bombs[i]
+                    explosions.append(Explosion(bombs[j], 50))  # 追加機能１
+                    del bombs[j]
                     bird.change_img(6, screen)
-                    score.score_up(1)
+                    score.score_up(1)  # 追加機能３
                     break
 
-        score.update(screen)
+        score.update(screen)  # 追加機能３
         pg.display.update()
         clock.tick(1000)
 
