@@ -143,6 +143,23 @@ class Beam:
         self._rct.move_ip(self._vx, self._vy)
         screen.blit(self._img, self._rct)
 
+class Explosion:
+    """
+    エフェクトに関するクラス
+    """
+    def __init__(self, bomb: Bomb, life: int):
+        img = pg.image.load("ex03/fig/explosion.gif")
+        self._imgs = [img, pg.transform.flip(img, 1, 1)]
+        self._life = life 
+        self._img = self._imgs[0]
+        self._rct = self._img.get_rect()
+        self._rct.center = bomb._rct.center
+
+    def update(self, screen: pg.surface):
+        if self._life != 0:
+            screen.blit(self._imgs[self._life // 10 % 2], self._rct.center)
+            self._life -=1
+
 
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
@@ -152,6 +169,7 @@ def main():
 
     bird = Bird(3, (900, 400))
     bombs = [Bomb() for _ in range(NUM_OF_BOMBS)]
+    explosions = []
     beam = None
 
     tmr = 0
@@ -164,8 +182,10 @@ def main():
 
         tmr += 1
         screen.blit(bg_img, [0, 0])
-        
 
+        for explosion in explosions:
+            explosion.update(screen)
+        
         for bomb in bombs:
             bomb.update(screen)
             if bird._rct.colliderect(bomb._rct):
@@ -183,6 +203,7 @@ def main():
             for i, bomb in enumerate(bombs):
                 if beam._rct.colliderect(bomb._rct):
                     beam = None
+                    explosions.append(Explosion(bombs[i], 50))
                     del bombs[i]
                     bird.change_img(6, screen)
                     break
