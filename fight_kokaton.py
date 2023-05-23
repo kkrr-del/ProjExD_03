@@ -152,7 +152,6 @@ class Beam:
         screen.blit(self._img, self._rct)
 
 
-
 class Explosion:  # 追加機能１
     def __init__(self, bomb: Bomb, life: int):
         img = pg.image.load("ex03/fig/explosion.gif")
@@ -215,10 +214,10 @@ def main():
         for bomb in bombs:
             bomb.update(screen)
             if bird._rct.colliderect(bomb._rct):
-                # ゲームオーバー時に，こうかとん画像を切り替え，1秒間表示させる
+                # ゲームオーバー時に，こうかとん画像を切り替え，2秒間表示させる
                 bird.change_img(8, screen)
                 pg.display.update()
-                time.sleep(1)
+                time.sleep(2)
                 return
 
         key_lst = pg.key.get_pressed()
