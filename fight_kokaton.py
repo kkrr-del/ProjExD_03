@@ -167,11 +167,33 @@ class Explosion:
             self._life -=1
 
 
+class Score:
+    """
+    打ち落とした爆弾の数をスコアとして表示するクラス
+    爆弾:1点
+    """
+    def __init__(self):
+        self.font = pg.font.Font(None, 80)
+        self.color = (225, 0, 255)
+        self.score = 0
+        self.image = self.font.render(f"Score: {self.score}", 0, self.color)
+        self.rect = self.image.get_rect()
+        self.rect.center = 150, HEIGHT - 830
+
+    def score_up(self, add):
+        self.score += add
+
+    def update(self, screen: pg.Surface):
+        self.image = self.font.render(f"Score: {self.score}", 0, self.color)
+        screen.blit(self.image, self.rect)
+
+
 def main():
     pg.display.set_caption("たたかえ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     clock = pg.time.Clock()
     bg_img = pg.image.load("ex03/fig/pg_bg.jpg")
+    score = Score()
 
     bird = Bird(3, (900, 400))
     bombs = [Bomb() for _ in range(NUM_OF_BOMBS)]
@@ -212,8 +234,10 @@ def main():
                     explosions.append(Explosion(bombs[i], 50))
                     del bombs[i]
                     bird.change_img(6, screen)
+                    score.score_up(1)
                     break
 
+        score.update(screen)
         pg.display.update()
         clock.tick(1000)
 
